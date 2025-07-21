@@ -1,200 +1,68 @@
---// === OrionLib Load ===
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
-
---// === Window ===
-local Window = OrionLib:MakeWindow({
-    Name = "MM2 Summer",
-    HidePremium = false,
-    SaveConfig = false,
-    IntroText = "MM2 BeachBall Farm"
-})
-
---// === Services & Player Refs ===
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local w = lib:Window("MM2 Summer")
+local plr = game.Players.LocalPlayer
+local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
-
-LocalPlayer.CharacterAdded:Connect(function(char)
+plr.CharacterAdded:Connect(function(char)
     character = char
     humPart = char:WaitForChild("HumanoidRootPart")
 end)
-
---// === Coin Container Tracking ===
-local map -- will hold latest CoinContainer model
-
--- Track newly added CoinContainers
+local map
 game.Workspace.DescendantAdded:Connect(function(m)
     if m:IsA("Model") and m.Name == "CoinContainer" then
         map = m
     end
 end)
-
--- Initial scan helper
-local function findCoinContainer()
-    for _, m in ipairs(game.Workspace:GetDescendants()) do
-        if m:IsA("Model") and m.Name == "CoinContainer" then
-            return m
-        end
-    end
-    return nil
-end
-
---// === Config Vars ===
 local delay = 2.5
 getgenv().farm = false
-
--- The active farming thread (so we can stop it cleanly)
-local farmThread
-
---// === Utility: ensure HumanoidRootPart exists ===
-local function getHumPart()
-    if humPart and humPart.Parent then
-        return humPart
-    end
-    if character and character.Parent then
-        humPart = character:FindFirstChild("HumanoidRootPart")
-        if humPart then return humPart end
-    end
-    -- Wait for character refresh
-    character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    humPart = character:WaitForChild("HumanoidRootPart")
-    return humPart
-end
-
---// === Utility: Disable collisions on character parts ===
-local function noclipCharacter()
-    if not character then return end
-    for _, p in pairs(character:GetChildren()) do
-        if p:IsA("BasePart") and p.CanCollide then
-            p.CanCollide = false
-        end
-    end
-end
-
---// === Farming Logic ===
-local function runFarm()
-    -- run in spawned thread
+w:Toggle("BeachBall Farm", false, function(bool)
+    getgenv().farm = bool
     while getgenv().farm do
-        -- ensure we have a map reference
         if (not map) or (not map.Parent) then
-            map = findCoinContainer()
+            for _,m in ipairs(game.Workspace:GetDescendants()) do
+                if m:IsA("Model") and m.Name == "CoinContainer" then
+                    map = m
+                    break
+                end
+            end
         end
-
         if map and map.Parent then
-            for _, coin in ipairs(map:GetChildren()) do
+            for _,coin in ipairs(map:GetChildren()) do
                 if not getgenv().farm then break end
-
-                -- verify coin object
-                if coin:IsA("Part") and coin.Name == "Coin_Server" and coin:GetAttribute("CoinID") == "BeachBall" then
+                if coin:IsA("Part") and coin.Name=="Coin_Server" and coin:GetAttribute("CoinID")=="BeachBall" then
                     local cv = coin:FindFirstChild("CoinVisual")
-                    if cv and cv.Transparency ~= 1 then
-                        local root = getHumPart()
-                        if not root then break end
-
-                        noclipCharacter()
-                        -- tp slightly above so we touch collect zone w/out clipping into map
-                        root.CFrame = coin.CFrame * CFrame.new(0, 6, 0)
-
-                        -- wait current delay (user adjustable)
+                    if cv and cv.Transparency~=1 then
+                        if not humPart or not humPart.Parent then
+                            humPart = character and character:FindFirstChild("HumanoidRootPart")
+                            if not humPart then break end
+                        end
+                        for _,p in pairs(character:GetChildren()) do
+                            if p:IsA("BasePart") and p.CanCollide then p.CanCollide=false end
+                        end
+                        humPart.CFrame = coin.CFrame * CFrame.new(0,6,0)
                         task.wait(delay)
                     end
                 end
             end
         end
-
-        -- small pause before rescanning again
         task.wait(1)
     end
-end
-
-local function startFarm()
-    if farmThread then
-        -- already running; let it continue
-        return
-    end
-    farmThread = task.spawn(function()
-        runFarm()
-        -- when loop exits (farm flag false), clear handle
-        farmThread = nil
-    end)
-end
-
-local function stopFarm()
-    -- just flip flag; loop sees it and exits
-    -- farmThread cleared in runFarm() exit
-end
-
---// === Anti-AFK ===
+end)
+w:Box("Farm Delay", function(num)
+    delay = tonumber(num) or 2.5
+end)
 local GC = getconnections or get_signal_cons
-local antiAFKEnabled = false
-local antiAFKConn -- fallback conn
-
-local function enableAntiAFK()
-    if antiAFKEnabled then return end
-    antiAFKEnabled = true
-
+w:Button("Anti AFK", function()
     if GC then
-        for _, v in pairs(GC(LocalPlayer.Idled)) do
-            if v.Disable then
-                v:Disable()
-            elseif v.Disconnect then
-                v:Disconnect()
-            end
+        for _,v in pairs(GC(plr.Idled)) do
+            if v.Disable then v:Disable() elseif v.Disconnect then v:Disconnect() end
         end
     else
-        -- fallback: simulate activity
-        local vu = cloneref and cloneref(game:GetService("VirtualUser")) or game:GetService("VirtualUser")
-        antiAFKConn = LocalPlayer.Idled:Connect(function()
+        local vu = cloneref(game:GetService("VirtualUser"))
+        plr.Idled:Connect(function()
             vu:CaptureController()
             vu:ClickButton2(Vector2.new())
         end)
     end
-end
-
---// === UI: Farm Tab ===
-local FarmTab = Window:MakeTab({
-    Name = "Farm",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-FarmTab:AddToggle({
-    Name = "BeachBall Farm",
-    Default = false,
-    Callback = function(bool)
-        getgenv().farm = bool
-        if bool then
-            startFarm()
-        else
-            stopFarm()
-        end
-    end
-})
-
-FarmTab:AddTextbox({
-    Name = "Farm Delay (seconds)",
-    Default = "2.5",
-    TextDisappear = true,
-    Callback = function(val)
-        local n = tonumber(val)
-        if n and n > 0 then
-            delay = n
-        else
-            delay = 2.5
-        end
-    end
-})
-
-FarmTab:AddButton({
-    Name = "Enable Anti AFK",
-    Callback = function()
-        enableAntiAFK()
-    end
-})
-
-FarmTab:AddParagraph("Info", "~ t.me/arceusxscripts")
-
---// === Init UI ===
-OrionLib:Init()
+end)
+w:Label("~ t.me/arceusxscripts", Color3.fromRGB(127, 143, 166))
