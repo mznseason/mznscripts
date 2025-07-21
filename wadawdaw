@@ -1,5 +1,5 @@
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Turtle-Brand/Turtle-Lib/main/source.lua"))()
-local w = lib:Window("MM2 Summer Script Made By Mnnz")
+local w = lib:Window("MM2 Summer")
 local plr = game.Players.LocalPlayer
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
@@ -13,7 +13,7 @@ game.Workspace.DescendantAdded:Connect(function(m)
         map = m
     end
 end)
-local delay = 2
+local delay = 2.5
 getgenv().farm = false
 w:Toggle("BeachBall Farm", false, function(bool)
     getgenv().farm = bool
