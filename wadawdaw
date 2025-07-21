@@ -1,4 +1,5 @@
-local TurtleLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Turtle-Brand/Turtle-Lib/main/source.lua"))()
+local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Turtle-Brand/Turtle-Lib/main/source.lua"))()
+local w = lib:Window("MM2 Summer Script Made By Mnnz")
 local plr = game.Players.LocalPlayer
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
@@ -12,31 +13,9 @@ game.Workspace.DescendantAdded:Connect(function(m)
         map = m
     end
 end)
-local delay = 2.5
+local delay = 2
 getgenv().farm = false
-getgenv().reset = false
-getgenv().disableBender = false
-
--- Custom Background with Purple Gradient
-local screenGui = Instance.new("ScreenGui")
-local frame = Instance.new("Frame")
-local uigradient = Instance.new("UIGradient")
-screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-frame.Size = UDim2.new(0, 300, 0, 400)
-frame.Position = UDim2.new(0.5, -150, 0.5, -200)
-frame.BackgroundTransparency = 0
-uigradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(128, 0, 128)), -- Purple start
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(75, 0, 130))  -- Darker purple end
-}
-uigradient.Parent = frame
-frame.Parent = screenGui
-
--- Create Turtle-Lib Window
-local w = TurtleLib:Window("murder mystery 2 | summer")
-
--- Toggle: Auto Farm Coins
-w:Toggle("Auto Farm Coins", false, function(bool)
+w:Toggle("BeachBall Farm", false, function(bool)
     getgenv().farm = bool
     while getgenv().farm do
         if (not map) or (not map.Parent) then
@@ -69,34 +48,11 @@ w:Toggle("Auto Farm Coins", false, function(bool)
         task.wait(1)
     end
 end)
-
--- Toggle: Auto Reset
-w:Toggle("Auto Reset", false, function(bool)
-    getgenv().reset = bool
-    while getgenv().reset do
-        if getgenv().reset then
-            plr.Character:BreakJoints()
-            task.wait(1)
-        end
-    end
-end)
-
--- Toggle: Disable Bender
-w:Toggle("Disable Bender", false, function(bool)
-    getgenv().disableBender = bool
-    if bool then
-        print("Bender disabled") -- Placeholder; customize if needed
-    end
-end)
-
--- Box: Farm Delay
 w:Box("Farm Delay", function(num)
     delay = tonumber(num) or 2.5
 end)
-
--- Button: Enable Anti AFK
-w:Button("Enable Anti AFK", function()
-    local GC = getconnections or get_signal_cons
+local GC = getconnections or get_signal_cons
+w:Button("Anti AFK", function()
     if GC then
         for _,v in pairs(GC(plr.Idled)) do
             if v.Disable then v:Disable() elseif v.Disconnect then v:Disconnect() end
@@ -109,19 +65,4 @@ w:Button("Enable Anti AFK", function()
         end)
     end
 end)
-
--- Label: Time in Game
-local timeInGame = 0
-w:Label("X time in game: 00h 00m 00s", Color3.fromRGB(255, 255, 255))
-spawn(function()
-    while task.wait(1) do
-        timeInGame = timeInGame + 1
-        local hours = math.floor(timeInGame / 3600)
-        local minutes = math.floor((timeInGame % 3600) / 60)
-        local seconds = timeInGame % 60
-        w:UpdateLabel("X time in game: 00h 00m 00s", string.format("X time in game: %02dh %02dm %02ds", hours, minutes, seconds), Color3.fromRGB(255, 255, 255))
-    end
-end)
-
--- Label: Branding
-w:Label("~ t.me/arceusxscripts", Color3.fromRGB(127, 143, 166))
+w:Label("~ MADE BY MNNZ", Color3.fromRGB(127, 143, 166))
