@@ -1,100 +1,74 @@
-local Library = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local plr = game.Players.LocalPlayer
-if not plr then
-    warn("Player not found, waiting...")
-    plr = game.Players.LocalPlayerAdded:Wait()
-end
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
 plr.CharacterAdded:Connect(function(char)
     character = char
     humPart = char:WaitForChild("HumanoidRootPart")
-    print("Character updated, humPart:", humPart)
 end)
-
-local map = nil
+local map
 game.Workspace.DescendantAdded:Connect(function(m)
     if m:IsA("Model") and m.Name == "CoinContainer" then
         map = m
-        print("CoinContainer found:", m)
     end
 end)
-
 local delay = 2.5
 getgenv().farm = false
 
--- Create Fluent Window
-local Window = Library:CreateWindow({
-    Name = "MLNZ | habrfarm Bdltioni",
-    Version = "v4.0 | Summer UPD!",
-    Theme = "Default"
-})
+-- Create Kavo Library Window
+local Window = Library.CreateLib("MM2 Summer", "DarkTheme")
 
 -- Create Tab
-local Tab = Window:CreateTab("Autofarm")
+local Tab = Window:NewTab("Farm")
 
 -- Create Section
-local Section = Tab:CreateSection("Fastest Coin Autofarm")
+local Section = Tab:NewSection("BeachBall Farm")
 
 -- Create Toggle for BeachBall Farm
-Section:CreateToggle("Enable Fastest Autofarm", false, function(state)
+Section:NewToggle("BeachBall Farm", "Toggle to start/stop farming", function(state)
     getgenv().farm = state
-    print("Toggle state changed to:", state)
-    if state then
-        spawn(function()
-            while getgenv().farm do
-                if not map or not map.Parent then
-                    map = nil
-                    for _, m in ipairs(game.Workspace:GetDescendants()) do
-                        if m:IsA("Model") and m.Name == "CoinContainer" then
-                            map = m
-                            print("CoinContainer reassigned:", m)
-                            break
-                        end
-                    end
+    while getgenv().farm do
+        if (not map) or (not map.Parent) then
+            for _,m in ipairs(game.Workspace:GetDescendants()) do
+                if m:IsA("Model") and m.Name == "CoinContainer" then
+                    map = m
+                    break
                 end
-                if map and map.Parent then
-                    for _, coin in ipairs(map:GetChildren()) do
-                        if not getgenv().farm then break end
-                        if coin:IsA("Part") and coin.Name == "Coin_Server" and coin:GetAttribute("CoinID") == "BeachBall" then
-                            local cv = coin:FindFirstChild("CoinVisual")
-                            if cv and cv.Transparency ~= 1 then
-                                if not humPart or not humPart.Parent then
-                                    humPart = character and character:FindFirstChild("HumanoidRootPart")
-                                    if not humPart then
-                                        warn("HumanoidRootPart not found, waiting...")
-                                        character = plr.CharacterAdded:Wait()
-                                        humPart = character:WaitForChild("HumanoidRootPart")
-                                    end
-                                end
-                                for _, p in pairs(character:GetChildren()) do
-                                    if p:IsA("BasePart") and p.CanCollide then p.CanCollide = false end
-                                end
-                                humPart.CFrame = coin.CFrame * CFrame.new(0, 6, 0)
-                                task.wait(delay)
-                            end
-                        end
-                    end
-                else
-                    warn("No CoinContainer found, retrying...")
-                end
-                task.wait(1)
             end
-        end)
+        end
+        if map and map.Parent then
+            for _,coin in ipairs(map:GetChildren()) do
+                if not getgenv().farm then break end
+                if coin:IsA("Part") and coin.Name=="Coin_Server" and coin:GetAttribute("CoinID")=="BeachBall" then
+                    local cv = coin:FindFirstChild("CoinVisual")
+                    if cv and cv.Transparency~=1 then
+                        if not humPart or not humPart.Parent then
+                            humPart = character and character:FindFirstChild("HumanoidRootPart")
+                            if not humPart then break end
+                        end
+                        for _,p in pairs(character:GetChildren()) do
+                            if p:IsA("BasePart") and p.CanCollide then p.CanCollide=false end
+                        end
+                        humPart.CFrame = coin.CFrame * CFrame.new(0,6,0)
+                        task.wait(delay)
+                    end
+                end
+            end
+        end
+        task.wait(1)
     end
 end)
 
--- Create Slider for Autofarm Speed
-Section:CreateSlider("Autofarm Speed", 1, 30, 21, function(value)
-    delay = 30 / value -- Invert value to match delay (higher speed = lower delay)
-    print("Delay set to:", delay)
+-- Create Input for Farm Delay
+Section:NewTextBox("Farm Delay", "Enter delay in seconds", function(txt)
+    delay = tonumber(txt) or 2.5
 end)
 
 -- Create Button for Anti AFK
-Section:CreateButton("Anti AFK", function()
+Section:NewButton("Anti AFK", "Prevent AFK kick", function()
     local GC = getconnections or get_signal_cons
     if GC then
-        for _, v in pairs(GC(plr.Idled)) do
+        for _,v in pairs(GC(plr.Idled)) do
             if v.Disable then v:Disable() elseif v.Disconnect then v:Disconnect() end
         end
     else
@@ -104,8 +78,7 @@ Section:CreateButton("Anti AFK", function()
             vu:ClickButton2(Vector2.new())
         end)
     end
-    print("Anti AFK enabled")
 end)
 
 -- Create Label
-Section:CreateLabel("~ t.me/arceusxscripts")
+Section:NewLabel("~ Mnnz Hub")
