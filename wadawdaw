@@ -1,4 +1,4 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Sirius = loadstring(game:HttpGet("https://sirius.menu/sirius"))()
 local plr = game.Players.LocalPlayer
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
@@ -15,17 +15,22 @@ end)
 local delay = 2.5
 getgenv().farm = false
 
--- Create Kavo Library Window
-local Window = Library.CreateLib("MM2 Summer", "DarkTheme")
+-- Create Sirius Window
+local Window = Sirius:CreateWindow({
+    Name = "Testol Hub | Autofarm Edition!",
+    Theme = "Dark",
+    Version = "v4.0 | Summer UPD!",
+    TabWidth = 160
+})
 
 -- Create Tab
-local Tab = Window:NewTab("Farm")
+local Tab = Window:CreateTab("Autofarm")
 
 -- Create Section
-local Section = Tab:NewSection("BeachBall Farm")
+local Section = Tab:CreateSection("Fastest Coin Autofarm")
 
 -- Create Toggle for BeachBall Farm
-Section:NewToggle("BeachBall Farm", "Toggle to start/stop farming", function(state)
+Section:CreateToggle("Enable Fastest Autofarm", false, function(state)
     getgenv().farm = state
     while getgenv().farm do
         if (not map) or (not map.Parent) then
@@ -59,13 +64,13 @@ Section:NewToggle("BeachBall Farm", "Toggle to start/stop farming", function(sta
     end
 end)
 
--- Create TextBox for Farm Delay
-Section:NewTextBox("Farm Delay", "Enter delay in seconds", function(txt)
-    delay = tonumber(txt) or 2.5
+-- Create Slider for Autofarm Speed (maps to delay)
+Section:CreateSlider("Autofarm Speed", 1, 30, 21, 1, function(value)
+    delay = 30 / value -- Invert value to match delay (higher speed = lower delay)
 end)
 
 -- Create Button for Anti AFK
-Section:NewButton("Anti AFK", "Prevent AFK kick", function()
+Section:CreateButton("Anti AFK", function()
     local GC = getconnections or get_signal_cons
     if GC then
         for _,v in pairs(GC(plr.Idled)) do
@@ -80,5 +85,11 @@ Section:NewButton("Anti AFK", "Prevent AFK kick", function()
     end
 end)
 
--- Create Label
-Section:NewLabel("~ t.me/arceusxscripts")
+-- Create Textbox for Reporting Interval (optional, non-functional placeholder)
+Section:CreateTextbox("Reporting Interval (Minutes)", "", function(text)
+    -- Placeholder; add custom reporting logic if needed
+    print("Reporting Interval set to: " .. text)
+end)
+
+-- Create Label (simplified, no color support directly)
+Section:CreateLabel("~ t.me/arceusxscripts") -- Color customization would need post-creation adjustment
