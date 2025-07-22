@@ -1,8 +1,9 @@
+-- Attempt to load MacLib Library
 local success, MacLib = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/BRADY-XYZ/maclib/main/source.lua"))()
 end)
 if not success then
-    warn("MacLib library failed to load: " .. tostring(MacLib))
+    warn("MacLib library failed to load: " .. tostring(MacLib) .. " at " .. os.date("%H:%M:%S", os.time()))
     return
 end
 print("MacLib library loaded successfully at " .. os.date("%H:%M:%S", os.time()))
@@ -29,6 +30,7 @@ player.CharacterAdded:Connect(function(char)
     character = char
     rootPart = char:WaitForChild("HumanoidRootPart")
     visitedPositions = {}
+    print("Character updated at " .. os.date("%H:%M:%S", os.time()))
 end)
 
 -- SOUND
@@ -37,94 +39,161 @@ collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
 
 -- CREATE MACLIB WINDOW
-local Window = MacLib:CreateWindow({
-    Name = "⛱️Coin/Beach balls Autofarm",
-    Theme = "Dark",
-    Size = UDim2.new(0, 300, 0, 350)
-})
+local Window
+local windowSuccess, windowError = pcall(function()
+    Window = MacLib:CreateWindow({
+        Name = "⛱️Coin/Beach balls Autofarm",
+        Theme = "Dark",
+        Size = UDim2.new(0, 300, 0, 350)
+    })
+end)
+if not windowSuccess then
+    warn("Failed to create Window: " .. tostring(windowError) .. " at " .. os.date("%H:%M:%S", os.time()))
+    return
+end
+print("Window created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- CREATE TAB
-local Tab = Window:CreateTab("Autofarm")
+local Tab
+local tabSuccess, tabError = pcall(function()
+    Tab = Window:CreateTab("Autofarm")
+end)
+if not tabSuccess then
+    warn("Failed to create Tab: " .. tostring(tabError) .. " at " .. os.date("%H:%M:%S", os.time()))
+    return
+end
+print("Tab created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- CREATE SECTION
-local Section = Tab:CreateSection("Farm Settings")
+local Section
+local sectionSuccess, sectionError = pcall(function()
+    Section = Tab:CreateSection("Farm Settings")
+end)
+if not sectionSuccess then
+    warn("Failed to create Section: " .. tostring(sectionError) .. " at " .. os.date("%H:%M:%S", os.time()))
+    return
+end
+print("Section created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- TOGGLE FOR AUTO FARM
-Section:CreateToggle("Auto Farm", false, function(state)
-    isActive = state
-    print("Auto Farm toggled to: " .. tostring(state) .. " at " .. os.date("%H:%M:%S", os.time()))
-    if state then
-        collected = 0
-        activeTime = 0
-        visitedPositions = {}
-        task.spawn(function()
-            while isActive do
-                character = player.Character or player.CharacterAdded:Wait()
-                rootPart = character:FindFirstChild("HumanoidRootPart")
-                if rootPart then
-                    local nearest, dist = nil, math.huge
-                    for _, obj in ipairs(workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") and obj.Name == "Coin_Server" and obj:GetAttribute("CoinID") == "BeachBall" then
-                            if not visitedPositions[obj] and (rootPart.Position - obj.Position).Magnitude < 30 then
-                                nearest = obj
-                                dist = (obj.Position - rootPart.Position).Magnitude
+local toggleSuccess, toggleError = pcall(function()
+    Section:CreateToggle("Auto Farm", false, function(state)
+        isActive = state
+        print("Auto Farm toggled to: " .. tostring(state) .. " at " .. os.date("%H:%M:%S", os.time()))
+        if state then
+            collected = 0
+            activeTime = 0
+            visitedPositions = {}
+            task.spawn(function()
+                while isActive do
+                    character = player.Character or player.CharacterAdded:Wait()
+                    rootPart = character:FindFirstChild("HumanoidRootPart")
+                    if rootPart then
+                        local nearest = nil
+                        for _, obj in ipairs(workspace:GetDescendants()) do
+                            if obj:IsA("BasePart") and obj.Name == "Coin_Server" and obj:GetAttribute("CoinID") == "BeachBall" then
+                                if not visitedPositions[obj] and (rootPart.Position - obj.Position).Magnitude < 30 then
+                                    nearest = obj
+                                    break
+                                end
                             end
                         end
+                        if nearest then
+                            local distance = (nearest.Position - rootPart.Position).Magnitude
+                            local duration = distance / flySpeed
+                            local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+                            local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(nearest.Position)})
+                            tween:Play()
+                            tween.Completed:Wait()
+                            visitedPositions[nearest] = true
+                            collected += 1
+                            collectSound:Play()
+                        end
                     end
-                    if nearest then
-                        local distance = (nearest.Position - rootPart.Position).Magnitude
-                        local duration = distance / flySpeed
-                        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                        local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(nearest.Position)})
-                        tween:Play()
-                        tween.Completed:Wait()
-                        visitedPositions[nearest] = true
-                        collected += 1
-                        collectSound:Play()
-                    end
+                    activeTime += 1
+                    Section:UpdateLabel("Collected", "Coins/Eggs Collected: " .. collected)
+                    Section:UpdateLabel("Time", "Time Active: " .. activeTime .. "s")
+                    task.wait(0.1)
                 end
-                activeTime += 1
-                Section:UpdateLabel("Collected", "Coins/Eggs Collected: " .. collected)
-                Section:UpdateLabel("Time", "Time Active: " .. activeTime .. "s")
-                task.wait(0.1)
-            end
-        end)
-    else
-        activeTime = 0
-        Section:UpdateLabel("Time", "Time Active: 0s")
-    end
+            end)
+        else
+            activeTime = 0
+            Section:UpdateLabel("Time", "Time Active: 0s")
+        end
+    end)
 end)
+if not toggleSuccess then
+    warn("Failed to create Toggle: " .. tostring(toggleError) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Toggle created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- SLIDER FOR FLY SPEED
-Section:CreateSlider("Fly Speed", 10, 20, 15, 1, function(value)
-    flySpeed = value
-    print("Fly Speed set to: " .. value .. " at " .. os.date("%H:%M:%S", os.time()))
+local sliderSuccess, sliderError = pcall(function()
+    Section:CreateSlider("Fly Speed", 10, 20, 15, 1, function(value)
+        flySpeed = value
+        print("Fly Speed set to: " .. value .. " at " .. os.date("%H:%M:%S", os.time()))
+    end)
 end)
+if not sliderSuccess then
+    warn("Failed to create Slider: " .. tostring(sliderError) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Slider created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- BUTTON FOR ANTI-AFK
-Section:CreateButton("Anti-AFK", function()
-    antiAFK = not antiAFK
-    print("Anti-AFK toggled to: " .. tostring(antiAFK) .. " at " .. os.date("%H:%M:%S", os.time()))
-    if antiAFK then
-        player.Idled:Connect(function()
-            VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        end)
-    end
+local buttonSuccess, buttonError = pcall(function()
+    Section:CreateButton("Anti-AFK", function()
+        antiAFK = not antiAFK
+        print("Anti-AFK toggled to: " .. tostring(antiAFK) .. " at " .. os.date("%H:%M:%S", os.time()))
+        if antiAFK then
+            player.Idled:Connect(function()
+                VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            end)
+        end
+    end)
 end)
+if not buttonSuccess then
+    warn("Failed to create Button: " .. tostring(buttonError) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Button created successfully at " .. os.date("%H:%M:%S", os.time()))
 
--- TEXTBOX FOR REPORTING INTERVAL (PLACEHOLDER)
-Section:CreateTextbox("Reporting Interval (Minutes)", "0", function(text)
-    local minutes = tonumber(text) or 0
-    print("Reporting Interval set to: " .. minutes .. " minutes at " .. os.date("%H:%M:%S", os.time()))
-    -- Add custom reporting logic here if needed
+-- TEXTBOX FOR REPORTING INTERVAL
+local textboxSuccess, textboxError = pcall(function()
+    Section:CreateTextbox("Reporting Interval (Minutes)", "0", function(text)
+        local minutes = tonumber(text) or 0
+        print("Reporting Interval set to: " .. minutes .. " minutes at " .. os.date("%H:%M:%S", os.time()))
+    end)
 end)
+if not textboxSuccess then
+    warn("Failed to create Textbox: " .. tostring(textboxError) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Textbox created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- LABELS
-Section:CreateLabel("Collected", "Coins/Eggs Collected: 0")
-Section:CreateLabel("Time", "Time Active: 0s")
-Section:CreateLabel("Credit", "Made by Mnnz Scripts")
+local label1Success, label1Error = pcall(function()
+    Section:CreateLabel("Collected", "Coins/Eggs Collected: 0")
+end)
+if not label1Success then
+    warn("Failed to create Label 'Collected': " .. tostring(label1Error) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Label 'Collected' created successfully at " .. os.date("%H:%M:%S", os.time()))
+
+local label2Success, label2Error = pcall(function()
+    Section:CreateLabel("Time", "Time Active: 0s")
+end)
+if not label2Success then
+    warn("Failed to create Label 'Time': " .. tostring(label2Error) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Label 'Time' created successfully at " .. os.date("%H:%M:%S", os.time()))
+
+local label3Success, label3Error = pcall(function()
+    Section:CreateLabel("Credit", "Made by Mnnz Scripts")
+end)
+if not label3Success then
+    warn("Failed to create Label 'Credit': " .. tostring(label3Error) .. " at " .. os.date("%H:%M:%S", os.time()))
+end
+print("Label 'Credit' created successfully at " .. os.date("%H:%M:%S", os.time()))
 
 -- RUNSERVICE FOR COLLISION AND ANTI-AFK
 RunService.Stepped:Connect(function()
