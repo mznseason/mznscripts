@@ -1,0 +1,138 @@
+local success, MacLib = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/BRADY-XYZ/maclib/main/source.lua"))()
+end)
+if not success then
+    warn("MacLib library failed to load: " .. tostring(MacLib))
+    return
+end
+print("MacLib library loaded successfully at " .. os.date("%H:%M:%S", os.time()))
+
+-- SERVICES
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+
+-- VARIABLES
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local visitedPositions = {}
+local isActive = false
+local flySpeed = 15
+local collected = 0
+local activeTime = 0
+local antiAFK = false
+
+player.CharacterAdded:Connect(function(char)
+    character = char
+    rootPart = char:WaitForChild("HumanoidRootPart")
+    visitedPositions = {}
+end)
+
+-- SOUND
+local collectSound = Instance.new("Sound", rootPart)
+collectSound.SoundId = "rbxassetid://12221967"
+collectSound.Volume = 1
+
+-- CREATE MACLIB WINDOW
+local Window = MacLib:CreateWindow({
+    Name = "⛱️Coin/Beach balls Autofarm",
+    Theme = "Dark",
+    Size = UDim2.new(0, 300, 0, 350)
+})
+
+-- CREATE TAB
+local Tab = Window:CreateTab("Autofarm")
+
+-- CREATE SECTION
+local Section = Tab:CreateSection("Farm Settings")
+
+-- TOGGLE FOR AUTO FARM
+Section:CreateToggle("Auto Farm", false, function(state)
+    isActive = state
+    print("Auto Farm toggled to: " .. tostring(state) .. " at " .. os.date("%H:%M:%S", os.time()))
+    if state then
+        collected = 0
+        activeTime = 0
+        visitedPositions = {}
+        task.spawn(function()
+            while isActive do
+                character = player.Character or player.CharacterAdded:Wait()
+                rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local nearest, dist = nil, math.huge
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and obj.Name == "Coin_Server" and obj:GetAttribute("CoinID") == "BeachBall" then
+                            if not visitedPositions[obj] and (rootPart.Position - obj.Position).Magnitude < 30 then
+                                nearest = obj
+                                dist = (obj.Position - rootPart.Position).Magnitude
+                            end
+                        end
+                    end
+                    if nearest then
+                        local distance = (nearest.Position - rootPart.Position).Magnitude
+                        local duration = distance / flySpeed
+                        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+                        local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(nearest.Position)})
+                        tween:Play()
+                        tween.Completed:Wait()
+                        visitedPositions[nearest] = true
+                        collected += 1
+                        collectSound:Play()
+                    end
+                end
+                activeTime += 1
+                Section:UpdateLabel("Collected", "Coins/Eggs Collected: " .. collected)
+                Section:UpdateLabel("Time", "Time Active: " .. activeTime .. "s")
+                task.wait(0.1)
+            end
+        end)
+    else
+        activeTime = 0
+        Section:UpdateLabel("Time", "Time Active: 0s")
+    end
+end)
+
+-- SLIDER FOR FLY SPEED
+Section:CreateSlider("Fly Speed", 10, 20, 15, 1, function(value)
+    flySpeed = value
+    print("Fly Speed set to: " .. value .. " at " .. os.date("%H:%M:%S", os.time()))
+end)
+
+-- BUTTON FOR ANTI-AFK
+Section:CreateButton("Anti-AFK", function()
+    antiAFK = not antiAFK
+    print("Anti-AFK toggled to: " .. tostring(antiAFK) .. " at " .. os.date("%H:%M:%S", os.time()))
+    if antiAFK then
+        player.Idled:Connect(function()
+            VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        end)
+    end
+end)
+
+-- TEXTBOX FOR REPORTING INTERVAL (PLACEHOLDER)
+Section:CreateTextbox("Reporting Interval (Minutes)", "0", function(text)
+    local minutes = tonumber(text) or 0
+    print("Reporting Interval set to: " .. minutes .. " minutes at " .. os.date("%H:%M:%S", os.time()))
+    -- Add custom reporting logic here if needed
+end)
+
+-- LABELS
+Section:CreateLabel("Collected", "Coins/Eggs Collected: 0")
+Section:CreateLabel("Time", "Time Active: 0s")
+Section:CreateLabel("Credit", "Made by Mnnz Scripts")
+
+-- RUNSERVICE FOR COLLISION AND ANTI-AFK
+RunService.Stepped:Connect(function()
+    if isActive and character then
+        for _, v in ipairs(character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
